@@ -10,6 +10,6 @@ import com.example.fittrack.model.Set
 //@TypeConverters(Converters::class)
 abstract class FitTrackDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
-    abstract fun workoutSessionDao(): WorkoutSessionDao
+    abstract fun workoutDao(): WorkoutDao
     abstract fun setDao(): SetDao
 }
