@@ -1,15 +1,15 @@
 package com.example.fittrack.model
 
-import androidx.room3.Entity
-import androidx.room3.PrimaryKey
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.UUID
 
 @Entity(tableName = "exercises")
 data class Exercise(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     val id: UUID = UUID.randomUUID(),
     val name: String,
-    val muscleGroup: muscleGroup,
+    val muscleGroup: MuscleGroup,
     //val equipment: equipment
     val image: String? = null,
 )
