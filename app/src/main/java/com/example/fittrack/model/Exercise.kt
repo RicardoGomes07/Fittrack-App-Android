@@ -1,10 +1,14 @@
 package com.example.fittrack.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
-@Entity(tableName = "exercises")
+@Entity(
+    tableName = "exercises",
+    indices = [Index(value = ["name"], unique = true)]
+)
 data class Exercise(
     @PrimaryKey
     val id: UUID = UUID.randomUUID(),

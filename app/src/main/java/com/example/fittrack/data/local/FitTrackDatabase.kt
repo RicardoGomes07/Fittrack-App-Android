@@ -8,7 +8,7 @@ import com.example.fittrack.model.WorkoutSession
 import com.example.fittrack.model.Set
 import com.example.fittrack.model.Workout
 
-@Database(entities = [Exercise::class, WorkoutSession::class, Set::class, Workout::class], version = 1, exportSchema = false)
+@Database(entities = [Exercise::class, WorkoutSession::class, Set::class, Workout::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class FitTrackDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
