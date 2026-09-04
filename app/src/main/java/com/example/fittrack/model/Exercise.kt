@@ -14,6 +14,5 @@ data class Exercise(
     val id: UUID = UUID.randomUUID(),
     val name: String,
     val muscleGroup: MuscleGroup,
-    //val equipment: equipment
-    val image: String? = null,
+    val imageRes: Int? = null
 )
