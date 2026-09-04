@@ -12,11 +12,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.fittrack.model.Exercise
+import com.example.fittrack.model.MuscleGroup
 import com.example.fittrack.ui.screens.components.ExercisesList
+import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
+import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisesScreen(
     onExerciseClick: (String) -> Unit,
@@ -24,12 +28,28 @@ fun ExercisesScreen(
 ) {
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
 
+    ExercisesContent(
+        exercises = exercises,
+        onExerciseClick = onExerciseClick,
+        onAddExerciseClick = { /* TODO: Add exercise */ }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExercisesContent(
+    exercises: List<Exercise>,
+    onExerciseClick: (String) -> Unit,
+    onAddExerciseClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(title = { Text("Exercises") })
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: Add exercise */ }) {
+            FloatingActionButton(onClick = onAddExerciseClick) {
                 Icon(Icons.Default.Add, contentDescription = "Add Exercise")
             }
         }
@@ -38,6 +58,23 @@ fun ExercisesScreen(
             exercises = exercises,
             onExerciseClick = onExerciseClick,
             modifier = Modifier.padding(paddingValues)
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ExercisesScreenPreview() {
+    val sampleExercises = listOf(
+        Exercise(id = UUID.randomUUID(), name = "Bench Press", muscleGroup = MuscleGroup.CHEST),
+        Exercise(id = UUID.randomUUID(), name = "Squat", muscleGroup = MuscleGroup.LEGS),
+        Exercise(id = UUID.randomUUID(), name = "Deadlift", muscleGroup = MuscleGroup.BACK)
+    )
+    FitTrackTheme {
+        ExercisesContent(
+            exercises = sampleExercises,
+            onExerciseClick = {},
+            onAddExerciseClick = {}
         )
     }
 }
