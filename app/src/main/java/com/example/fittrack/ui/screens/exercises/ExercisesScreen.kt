@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.fittrack.R
 import com.example.fittrack.model.Exercise
 import com.example.fittrack.model.MuscleGroup
 import com.example.fittrack.ui.screens.components.ExercisesList
@@ -66,9 +67,24 @@ fun ExercisesContent(
 @Composable
 fun ExercisesScreenPreview() {
     val sampleExercises = listOf(
-        Exercise(id = UUID.randomUUID(), name = "Bench Press", muscleGroup = MuscleGroup.CHEST),
-        Exercise(id = UUID.randomUUID(), name = "Squat", muscleGroup = MuscleGroup.LEGS),
-        Exercise(id = UUID.randomUUID(), name = "Deadlift", muscleGroup = MuscleGroup.BACK)
+        Exercise(
+            id = UUID.randomUUID(),
+            name = "Bench Press",
+            muscleGroup = MuscleGroup.CHEST,
+            imageRes = R.drawable.ic_chest_press
+        ),
+        Exercise(
+            id = UUID.randomUUID(),
+            name = "Squat",
+            muscleGroup = MuscleGroup.LEGS,
+            imageRes = R.drawable.ic_barbell_squat
+        ),
+        Exercise(
+            id = UUID.randomUUID(),
+            name = "Deadlift",
+            muscleGroup = MuscleGroup.BACK,
+            imageRes = R.drawable.ic_deadlift
+        )
     )
     FitTrackTheme {
         ExercisesContent(

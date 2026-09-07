@@ -12,6 +12,7 @@ import com.example.fittrack.data.model.WorkoutRepository
 import com.example.fittrack.data.model.WorkoutSessionRepository
 import com.example.fittrack.ui.screens.exercises.ExerciseDetailViewModel
 import com.example.fittrack.ui.screens.exercises.ExercisesViewModel
+import com.example.fittrack.ui.screens.home.HomeViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import java.util.UUID
@@ -63,4 +64,5 @@ val appModule = module {
 
     viewModelOf(::ExercisesViewModel)
     viewModelOf(::ExerciseDetailViewModel)
+    viewModelOf(::HomeViewModel)
 }

@@ -3,13 +3,15 @@ package com.example.fittrack.ui.screens.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.fittrack.model.Exercise
@@ -29,13 +31,24 @@ fun ExerciseItem(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = exercise.imageRes ?: 0),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(end = 16.dp)
-            )
+            if (exercise.imageRes != null && exercise.imageRes != 0) {
+                Image(
+                    painter = painterResource(id = exercise.imageRes),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(end = 16.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.FitnessCenter,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(end = 16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
             Column {
                 Text(
                     text = exercise.name,
