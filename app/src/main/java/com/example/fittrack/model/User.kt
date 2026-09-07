@@ -4,12 +4,10 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.UUID
 
-@Entity(tableName = "sets")
-data class Set(
+@Entity(tableName = "users")
+data class User(
     @PrimaryKey
     val id: UUID = UUID.randomUUID(),
-    val exerciseId: UUID,
-    val sessionId: UUID,
-    val reps: Int,
-    val weight: Double,
+    val name: String,
+    val password: String
 )

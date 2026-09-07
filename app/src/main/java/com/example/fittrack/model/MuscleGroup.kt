@@ -1,6 +1,6 @@
 package com.example.fittrack.model
 
-enum class muscleGroup {
+enum class MuscleGroup {
     LEGS,
     ARMS,
     CHEST,
