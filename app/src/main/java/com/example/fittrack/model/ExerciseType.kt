@@ -1,9 +1,8 @@
 package com.example.fittrack.model
 
 enum class ExerciseType {
-    WEIGHT,
+    WEIGHT_REPS,
     BODYWEIGHT,
-    CARDIO,
-    BAND,
-    DURATION
+    DURATION,
+    DISTANCE
 }
