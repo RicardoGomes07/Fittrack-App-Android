@@ -16,5 +16,6 @@ data class Exercise(
     val muscleGroup: MuscleGroup,
     val description: String = "",
     val exerciseType: ExerciseType,
+    val equipment: Equipment,
     val imageRes: Int? = null
 )

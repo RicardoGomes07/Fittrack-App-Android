@@ -5,7 +5,6 @@ enum class Equipment {
     DUMBBELL,
     CABLE,
     MACHINE,
-    BODYWEIGHT,
     BAND,
     NONE
 }
