@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fittrack.R
 import com.example.fittrack.model.Exercise
 import com.example.fittrack.model.MuscleGroup
+import com.example.fittrack.ui.screens.components.FitTrackBottomNav
 import com.example.fittrack.ui.screens.components.ExercisesList
 import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
@@ -25,6 +26,7 @@ import java.util.UUID
 @Composable
 fun ExercisesScreen(
     onExerciseClick: (String) -> Unit,
+    onNavItemSelected: (String) -> Unit = {},
     viewModel: ExercisesViewModel = koinViewModel()
 ) {
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
@@ -32,6 +34,7 @@ fun ExercisesScreen(
     ExercisesContent(
         exercises = exercises,
         onExerciseClick = onExerciseClick,
+        onNavItemSelected = onNavItemSelected,
         onAddExerciseClick = { /* TODO: Add exercise */ }
     )
 }
@@ -41,6 +44,7 @@ fun ExercisesScreen(
 fun ExercisesContent(
     exercises: List<Exercise>,
     onExerciseClick: (String) -> Unit,
+    onNavItemSelected: (String) -> Unit,
     onAddExerciseClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -48,6 +52,12 @@ fun ExercisesContent(
         modifier = modifier,
         topBar = {
             TopAppBar(title = { Text("Exercises") })
+        },
+        bottomBar = {
+            FitTrackBottomNav(
+                selectedItem = "exercises",
+                onItemSelected = onNavItemSelected
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddExerciseClick) {
@@ -90,6 +100,7 @@ fun ExercisesScreenPreview() {
         ExercisesContent(
             exercises = sampleExercises,
             onExerciseClick = {},
+            onNavItemSelected = {},
             onAddExerciseClick = {}
         )
     }

@@ -5,9 +5,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.example.fittrack.model.Screen
 import com.example.fittrack.ui.screens.exercises.ExerciseDetailsScreen
 import com.example.fittrack.ui.screens.exercises.ExercisesScreen
+import com.example.fittrack.ui.screens.home.HomeScreen
 
 @Composable
 fun AppNavHost(
@@ -15,12 +17,46 @@ fun AppNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.EXERCISES.name
+        startDestination = Screen.HOME.name
     ) {
+        composable(Screen.HOME.name) {
+            HomeScreen(
+                onNavItemSelected = { route ->
+                    val destination = when (route) {
+                        "exercises" -> Screen.EXERCISES.name
+                        else -> null
+                    }
+                    destination?.let {
+                        navController.navigate(it) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                }
+            )
+        }
         composable(Screen.EXERCISES.name) {
             ExercisesScreen(
                 onExerciseClick = { id ->
                     navController.navigate("${Screen.EXERCISE_DETAIL.name}/$id")
+                },
+                onNavItemSelected = { route ->
+                    val destination = when (route) {
+                        "dashboard" -> Screen.HOME.name
+                        else -> null
+                    }
+                    destination?.let {
+                        navController.navigate(it) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 }
             )
         }
