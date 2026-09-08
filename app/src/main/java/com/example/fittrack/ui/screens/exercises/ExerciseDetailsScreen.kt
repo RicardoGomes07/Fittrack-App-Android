@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fittrack.R
+import com.example.fittrack.model.Equipment
 import com.example.fittrack.model.Exercise
+import com.example.fittrack.model.ExerciseType
 import com.example.fittrack.model.MuscleGroup
 import com.example.fittrack.ui.theme.FitTrackColors
 import com.example.fittrack.ui.theme.FitTrackTheme
@@ -187,15 +189,14 @@ private fun ExerciseHeader(exercise: Exercise) {
             Badge(
                 containerColor = FitTrackColors.SurfaceContainer,
                 contentColor = FitTrackColors.OnSurfaceVariant,
-                text = "SECONDARY: Deltoid, Triceps",
-                showDot = true,
+                text = exercise.exerciseType.name,
                 dotColor = FitTrackColors.Secondary
             )
             Badge(
                 containerColor = FitTrackColors.SurfaceContainerHigh,
                 contentColor = FitTrackColors.OnSurfaceVariant,
                 icon = Icons.Default.Layers,
-                text = "Barbell, Flat Bench"
+              showDot = true,  text = "Equipment: " + exercise.equipment.name
             )
         }
     }
@@ -496,7 +497,9 @@ fun ExerciseDetailsScreenPreview() {
         name = "Barbell Bench Press",
         muscleGroup = MuscleGroup.CHEST,
         description = "Foundational upper-body horizontal push strength standard",
-        imageRes = R.drawable.ic_chest_press
+        imageRes = R.drawable.ic_chest_press,
+        exerciseType = ExerciseType.WEIGHT_REPS,
+        equipment = Equipment.BARBELL
     )
     FitTrackTheme {
         ExerciseDetailsContent(

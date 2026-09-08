@@ -7,9 +7,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.example.fittrack.model.Screen
+import com.example.fittrack.ui.screens.exercises.ExerciseAddScreen
 import com.example.fittrack.ui.screens.exercises.ExerciseDetailsScreen
 import com.example.fittrack.ui.screens.exercises.ExercisesScreen
 import com.example.fittrack.ui.screens.home.HomeScreen
+import com.example.fittrack.ui.screens.profile.ProfileScreen
 
 @Composable
 fun AppNavHost(
@@ -38,6 +40,28 @@ fun AppNavHost(
                 }
             )
         }
+        composable(Screen.EXERCISE_ADD.name) {
+            ExerciseAddScreen()
+        }
+        composable(Screen.PROFILE.name){
+            ProfileScreen(
+                onNavItemSelected = { route ->
+                    val destination = when (route) {
+                        "profile" -> Screen.PROFILE.name
+                        else -> null
+                    }
+                    destination?.let {
+                        navController.navigate(it) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+            )
+        }
         composable(Screen.EXERCISES.name) {
             ExercisesScreen(
                 onExerciseClick = { id ->
@@ -57,6 +81,9 @@ fun AppNavHost(
                             restoreState = true
                         }
                     }
+                },
+                onAddExerciseClick = {
+                    navController.navigate(Screen.EXERCISE_ADD.name)
                 }
             )
         }
