@@ -2,6 +2,7 @@ package com.example.fittrack.ui.screens.exercises
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fittrack.data.AuthManager
 import com.example.fittrack.data.model.ExerciseRepository
 import com.example.fittrack.model.Exercise
 import com.example.fittrack.model.ExerciseInput
@@ -12,8 +13,12 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ExercisesViewModel(
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val authManager: AuthManager
 ): ViewModel() {
+
+    val loggedInUser = authManager.currentUser
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val exercises: StateFlow<List<Exercise>> = exerciseRepository.getExercises()
         .stateIn(

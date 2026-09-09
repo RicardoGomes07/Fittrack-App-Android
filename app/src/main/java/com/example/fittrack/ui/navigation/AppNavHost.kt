@@ -118,7 +118,7 @@ fun AppNavHost(
             )
         }
         composable(Screen.EXERCISE_ADD.name) {
-            ExerciseAddScreen()
+            ExerciseAddScreen(onBack = { navController.popBackStack() })
         }
         composable("${Screen.EXERCISE_DETAIL.name}/{exerciseId}") { backStackEntry ->
             val exerciseId = backStackEntry.arguments?.getString("exerciseId")

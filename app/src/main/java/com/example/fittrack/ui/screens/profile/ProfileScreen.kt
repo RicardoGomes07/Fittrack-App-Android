@@ -2,8 +2,6 @@ package com.example.fittrack.ui.screens.profile
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,12 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,7 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fittrack.model.User
-import com.example.fittrack.ui.screens.components.FitTrackBottomNav
+import com.example.fittrack.ui.screens.components.home.FitTrackBottomNav
+import com.example.fittrack.ui.screens.components.profile.ProfileHero
+import com.example.fittrack.ui.screens.components.profile.ProfileNotLogged
+import com.example.fittrack.ui.screens.components.profile.ProfileTopBar
 import com.example.fittrack.ui.theme.FitTrackColors
 import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
@@ -51,7 +48,7 @@ fun ProfileScreen(
             CircularProgressIndicator(color = FitTrackColors.Primary)
         }
     } else if (loggedInUser == null) {
-        ProfileNotLoggedInContent(
+        ProfileNotLogged(
             selectedNavItem = selectedNavItem,
             onNavItemSelected = onNavItemSelected,
             onNavigateToLogin = onNavigateToLogin
@@ -67,62 +64,6 @@ fun ProfileScreen(
         )
     }
 }
-
-@Composable
-fun ProfileNotLoggedInContent(
-    selectedNavItem: String,
-    onNavItemSelected: (String) -> Unit,
-    onNavigateToLogin: () -> Unit
-) {
-    Scaffold(
-        containerColor = FitTrackColors.Background,
-        bottomBar = {
-            FitTrackBottomNav(
-                selectedItem = selectedNavItem,
-                onItemSelected = onNavItemSelected
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                Icons.Default.AccountCircle,
-                contentDescription = null,
-                modifier = Modifier.size(120.dp),
-                tint = FitTrackColors.SurfaceContainerHighest
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                "Not Signed In",
-                style = MaterialTheme.typography.headlineMedium,
-                color = FitTrackColors.OnSurface,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Sign in to track your progress and view your personal records.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = FitTrackColors.OnSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-            Button(
-                onClick = onNavigateToLogin,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = FitTrackColors.Primary),
-                shape = CircleShape
-            ) {
-                Text("Sign In / Sign Up", color = FitTrackColors.OnPrimary, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
 @Composable
 fun ProfileContent(
     state: ProfileUiState,
@@ -154,177 +95,9 @@ fun ProfileContent(
             LifetimeImpactSection(state)
             VolumeHeatmapSection()
             PersonalRecordsSection(state)
-            BadgesSection(state)
-            ProBanner()
             SettingsSection(state, onToggleUnits, onLogout)
             
             Spacer(Modifier.height(40.dp))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProfileTopBar(state: ProfileUiState, user: User) {
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(modifier = Modifier.size(32.dp).background(FitTrackColors.SurfaceContainerHigh, CircleShape), contentAlignment = Alignment.Center) {
-                    Text(user.name.first().toString(), color = FitTrackColors.Primary, style = MaterialTheme.typography.labelLarge)
-                }
-                Column {
-                    Text(
-                        "FITTRACK",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.sp
-                        ),
-                        color = FitTrackColors.Primary
-                    )
-                    Text(
-                        "Profile",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = FitTrackColors.OnSurface
-                    )
-                }
-            }
-        },
-        actions = {
-            Row(
-                modifier = Modifier
-                    .padding(end = 16.dp)
-                    .clip(CircleShape)
-                    .background(FitTrackColors.SurfaceContainerHigh)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text("🔥", fontSize = 12.sp)
-                Text("${state.streakDays} Days", color = FitTrackColors.Primary, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = FitTrackColors.Background.copy(alpha = 0.85f),
-            titleContentColor = FitTrackColors.OnSurface
-        )
-    )
-}
-
-@Composable
-private fun ProfileHero(state: ProfileUiState, user: User) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 20.dp)
-    ) {
-        // Ambient Glow
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(width = 250.dp, height = 120.dp)
-                .offset(y = (-40).dp)
-                .blur(60.dp)
-                .background(FitTrackColors.Primary.copy(alpha = 0.1f), CircleShape)
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    // Avatar with Progress
-                    Box(contentAlignment = Alignment.Center) {
-                        Canvas(modifier = Modifier.size(80.dp)) {
-                            drawCircle(color = FitTrackColors.SurfaceContainerHighest, radius = size.minDimension / 2, style = Stroke(width = 3.dp.toPx()))
-                            drawArc(
-                                color = FitTrackColors.Primary,
-                                startAngle = -90f,
-                                sweepAngle = 280f,
-                                useCenter = false,
-                                style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(FitTrackColors.SurfaceContainerLowest),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(user.name.first().toString(), style = MaterialTheme.typography.headlineMedium, color = FitTrackColors.Primary)
-                        }
-                        Surface(
-                            modifier = Modifier.align(Alignment.BottomEnd).offset(x = 4.dp, y = 4.dp),
-                            color = FitTrackColors.Primary,
-                            shape = CircleShape,
-                            shadowElevation = 4.dp
-                        ) {
-                            Text(
-                                "L${state.level}",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = FitTrackColors.OnPrimary
-                            )
-                        }
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(user.name, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = FitTrackColors.OnSurface)
-                            Icon(Icons.Default.Verified, contentDescription = null, tint = FitTrackColors.Primary, modifier = Modifier.size(18.dp))
-                        }
-                        Text("@${user.nickname}", style = MaterialTheme.typography.bodyMedium, color = FitTrackColors.OnSurfaceVariant)
-                        Text("Member since ${state.memberSince}", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = FitTrackColors.OnSurfaceVariant.copy(alpha = 0.8f))
-                    }
-                }
-
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier.size(44.dp).background(FitTrackColors.SurfaceContainerHigh, CircleShape)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit Profile", tint = FitTrackColors.OnSurface, modifier = Modifier.size(20.dp))
-                }
-            }
-
-            // Badges Bar
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                StatusBadge(text = "${state.streakDays}-Day Streak", iconStr = "🔥")
-                StatusBadge(text = "PRO Athlete", dotColor = FitTrackColors.Primary)
-                StatusBadge(text = "${state.consistency}% Consistency", icon = Icons.Default.Timer, contentColor = FitTrackColors.Secondary)
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusBadge(
-    text: String,
-    iconStr: String? = null,
-    icon: ImageVector? = null,
-    dotColor: Color? = null,
-    contentColor: Color = FitTrackColors.Primary
-) {
-    Surface(
-        color = if (dotColor != null) FitTrackColors.PrimaryContainer.copy(alpha = 0.1f) else FitTrackColors.SurfaceContainerHigh,
-        shape = CircleShape
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            if (iconStr != null) Text(iconStr, fontSize = 12.sp)
-            if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(15.dp), tint = contentColor)
-            if (dotColor != null) {
-                Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
-            }
-            Text(
-                text,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = contentColor
-            )
         }
     }
 }
@@ -544,109 +317,6 @@ private fun PRCard(modifier: Modifier = Modifier, pr: PersonalRecord) {
         }
     }
 }
-
-@Composable
-private fun BadgesSection(state: ProfileUiState) {
-    Column(modifier = Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Stars, contentDescription = null, tint = FitTrackColors.Secondary, modifier = Modifier.size(20.dp))
-                Text("Badges Earned", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = FitTrackColors.OnSurface)
-            }
-            Text("14 / 24 Unlocked", style = MaterialTheme.typography.labelSmall, color = FitTrackColors.OnSurfaceVariant)
-        }
-
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(state.badges) { badge ->
-                BadgeCard(badge)
-            }
-        }
-    }
-}
-
-@Composable
-private fun BadgeCard(badge: BadgeInfo) {
-    Surface(
-        modifier = Modifier.width(112.dp),
-        color = FitTrackColors.SurfaceContainerHigh,
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val icon = when(badge.icon) {
-                "workspace_premium" -> Icons.Default.WorkspacePremium
-                "front_hand" -> Icons.Default.FrontHand
-                "local_fire_department" -> Icons.Default.LocalFireDepartment
-                else -> Icons.Default.WbSunny
-            }
-            
-            val tint = if (badge.icon == "front_hand") FitTrackColors.Secondary else FitTrackColors.Primary
-
-            Surface(
-                modifier = Modifier.size(48.dp),
-                color = if (badge.icon == "front_hand") FitTrackColors.SecondaryContainer.copy(alpha = 0.2f) else FitTrackColors.PrimaryContainer.copy(alpha = 0.2f),
-                shape = CircleShape
-            ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.padding(12.dp))
-            }
-            
-            Text(badge.name, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = FitTrackColors.OnSurface, textAlign = TextAlign.Center)
-            Text(badge.description, style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp), color = FitTrackColors.OnSurfaceVariant, textAlign = TextAlign.Center)
-        }
-    }
-}
-
-@Composable
-private fun ProBanner() {
-    Surface(
-        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-        color = FitTrackColors.SurfaceContainerHigh,
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .background(Brush.horizontalGradient(listOf(FitTrackColors.SurfaceContainerHigh, FitTrackColors.SurfaceContainer, FitTrackColors.SurfaceContainerHigh)))
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(modifier = Modifier.size(40.dp), color = FitTrackColors.Primary, shape = CircleShape) {
-                    Icon(Icons.Default.Bolt, contentDescription = null, tint = FitTrackColors.OnPrimary, modifier = Modifier.padding(8.dp))
-                }
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("FitTrack Pro", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = FitTrackColors.OnSurface)
-                        Surface(color = FitTrackColors.Primary.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp)) {
-                            Text("ACTIVE", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = FitTrackColors.Primary)
-                        }
-                    }
-                    Text("Annual Pass • Renews Dec 15, 2025", style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), color = FitTrackColors.OnSurfaceVariant)
-                }
-            }
-            Text(
-                "Manage",
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(FitTrackColors.SurfaceContainerHighest)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = FitTrackColors.Secondary
-            )
-        }
-    }
-}
-
 @Composable
 private fun SettingsSection(state: ProfileUiState, onToggleUnits: () -> Unit, onLogout: () -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -733,7 +403,7 @@ private fun SettingsSection(state: ProfileUiState, onToggleUnits: () -> Unit, on
                 Text("Sign Out of FitTrack", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             }
             Text(
-                "FitTrack v4.12.0 (Build 892) • Android Compose Engine",
+                "FitTrack v1.0.0 (Build 22) • Android Compose Engine",
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
