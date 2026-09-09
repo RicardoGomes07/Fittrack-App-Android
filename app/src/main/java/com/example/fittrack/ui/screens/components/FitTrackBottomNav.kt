@@ -25,7 +25,7 @@ private data class NavItem(val key: String, val label: String, val icon: android
 private val navItems = listOf(
     NavItem("dashboard", "Home", Icons.Filled.Dashboard),
     NavItem("exercises", "Exercises", Icons.Filled.FitnessCenter),
-    NavItem("analytics", "Analytics", Icons.Filled.Insights),
+    //NavItem("analytics", "Analytics", Icons.Filled.Insights),
     NavItem("profile", "Profile", Icons.Filled.Person),
 )
 
