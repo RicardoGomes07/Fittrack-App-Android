@@ -3,24 +3,21 @@ package com.example.fittrack.ui.screens.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.fittrack.ui.screens.components.FitTrackBottomNav
-import com.example.fittrack.ui.screens.components.FitTrackTopBar
-import com.example.fittrack.ui.screens.components.GreetingSection
-import com.example.fittrack.ui.screens.components.MotivationBanner
+import com.example.fittrack.ui.screens.components.home.FitTrackBottomNav
+import com.example.fittrack.ui.screens.components.home.FitTrackTopBar
+import com.example.fittrack.ui.screens.components.home.GreetingSection
+import com.example.fittrack.ui.screens.components.home.MotivationBanner
+import com.example.fittrack.ui.screens.components.home.NotLoggedInCard
 import com.example.fittrack.ui.theme.FitTrackColors
 import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
@@ -114,54 +111,6 @@ fun HomeContent(
     }
 }
 
-@Composable
-private fun NotLoggedInCard(onSignUpClick: () -> Unit) {
-    Surface(
-        color = FitTrackColors.SurfaceContainer,
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.AccountCircle,
-                contentDescription = null,
-                tint = FitTrackColors.Primary.copy(alpha = 0.6f),
-                modifier = Modifier.size(64.dp)
-            )
-            
-            Text(
-                "Track your journey",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = FitTrackColors.OnSurface,
-                textAlign = TextAlign.Center
-            )
-            
-            Text(
-                "Log workouts, track your PRs, and see your progress over time by creating an account.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = FitTrackColors.OnSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            
-            Button(
-                onClick = onSignUpClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = FitTrackColors.Primary,
-                    contentColor = FitTrackColors.OnPrimary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) {
-                Text("Get Started in Profile", fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
 @Preview(showBackground = true, backgroundColor = 0xFF051424)
 @Composable
 private fun HomeScreenPreview() {
@@ -189,7 +138,7 @@ private fun HomeScreenGuestPreview() {
                 dateLabel = "Today, Monday Sep 7",
                 streakDays = 0,
                 motivationMessage = "Consistency is the key to success.",
-                isLoading = false,
+                isLoading = true,
                 loggedIn = false
             )
         )

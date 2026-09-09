@@ -16,8 +16,9 @@ import com.example.fittrack.model.Equipment
 import com.example.fittrack.model.Exercise
 import com.example.fittrack.model.ExerciseType
 import com.example.fittrack.model.MuscleGroup
-import com.example.fittrack.ui.screens.components.FitTrackBottomNav
-import com.example.fittrack.ui.screens.components.ExercisesList
+import com.example.fittrack.model.User
+import com.example.fittrack.ui.screens.components.home.FitTrackBottomNav
+import com.example.fittrack.ui.screens.components.exercise.ExercisesList
 import com.example.fittrack.ui.theme.FitTrackColors
 import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
@@ -31,8 +32,10 @@ fun ExercisesScreen(
     viewModel: ExercisesViewModel = koinViewModel()
 ) {
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
+    val loggedInUser by viewModel.loggedInUser.collectAsStateWithLifecycle()
 
     ExercisesContent(
+        loggedInUser = loggedInUser,
         exercises = exercises,
         onExerciseClick = onExerciseClick,
         onNavItemSelected = onNavItemSelected,
@@ -43,6 +46,7 @@ fun ExercisesScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisesContent(
+    loggedInUser: User?,
     exercises: List<Exercise>,
     onExerciseClick: (String) -> Unit,
     onNavItemSelected: (String) -> Unit,
@@ -61,8 +65,10 @@ fun ExercisesContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddExerciseClick) {
-                Icon(Icons.Default.Add, contentDescription = "Add Exercise")
+            if(loggedInUser != null){
+                FloatingActionButton(onClick = onAddExerciseClick) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Exercise")
+                }
             }
         }
     ) { paddingValues ->
@@ -108,7 +114,8 @@ fun ExercisesScreenPreview() {
             exercises = sampleExercises,
             onExerciseClick = {},
             onNavItemSelected = {},
-            onAddExerciseClick = {}
+            onAddExerciseClick = {},
+            loggedInUser = null
         )
     }
 }

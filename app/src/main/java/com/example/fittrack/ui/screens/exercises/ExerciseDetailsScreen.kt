@@ -52,6 +52,7 @@ fun ExerciseDetailsScreen(
     }
 
     val exercise by viewModel.exercise.collectAsStateWithLifecycle()
+    val loggedInUser by viewModel.loggedInUser.collectAsStateWithLifecycle()
 
     ExerciseDetailsContent(
         exercise = exercise,
