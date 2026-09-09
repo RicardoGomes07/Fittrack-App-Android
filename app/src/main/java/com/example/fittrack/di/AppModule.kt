@@ -13,14 +13,15 @@ import com.example.fittrack.data.model.ExerciseRepository
 import com.example.fittrack.data.model.SetRepository
 import com.example.fittrack.data.model.WorkoutRepository
 import com.example.fittrack.data.model.WorkoutSessionRepository
-import com.example.fittrack.model.Exercise
-import com.example.fittrack.model.MuscleGroup
+import com.example.fittrack.data.AuthManager
+import com.example.fittrack.data.model.UserRepository
+import com.example.fittrack.ui.screens.auth.AuthViewModel
 import com.example.fittrack.ui.screens.exercises.ExerciseDetailViewModel
 import com.example.fittrack.ui.screens.exercises.ExercisesViewModel
 import com.example.fittrack.ui.screens.home.HomeViewModel
+import com.example.fittrack.ui.screens.profile.ProfileViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
-import java.util.UUID
 
 val appModule = module {
     single {
@@ -34,6 +35,16 @@ val appModule = module {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
                     insertInitialExercises(db)
+                }
+
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    // Ensure exercises are seeded if table is empty
+                    db.query("SELECT COUNT(*) FROM exercises").use { cursor ->
+                        if (cursor.moveToFirst() && cursor.getInt(0) == 0) {
+                            insertInitialExercises(db)
+                        }
+                    }
                 }
             })
             .build()
@@ -51,7 +62,13 @@ val appModule = module {
     single { get<FitTrackDatabase>().workoutSessionDao() }
     single { WorkoutSessionRepository(get()) }
 
+    single { get<FitTrackDatabase>().userDao() }
+    single { UserRepository(get()) }
+    single { AuthManager(get()) }
+
     viewModelOf(::ExercisesViewModel)
     viewModelOf(::ExerciseDetailViewModel)
     viewModelOf(::HomeViewModel)
+    viewModelOf(::ProfileViewModel)
+    viewModelOf(::AuthViewModel)
 }

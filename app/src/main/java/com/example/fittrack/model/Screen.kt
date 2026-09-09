@@ -5,5 +5,7 @@ enum class Screen {
     EXERCISE_DETAIL,
     HOME,
     EXERCISE_ADD,
-    PROFILE
+    PROFILE,
+    LOGIN,
+    SIGN_UP
 }
