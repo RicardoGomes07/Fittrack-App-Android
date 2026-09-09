@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 @Entity(tableName = "sets")
-data class Set(
+data class WorkoutSet(
     @PrimaryKey
     val id: UUID = UUID.randomUUID(),
     val exerciseId: UUID,

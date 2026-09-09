@@ -1,4 +1,4 @@
-package com.example.fittrack.ui.screens.components
+package com.example.fittrack.ui.screens.components.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

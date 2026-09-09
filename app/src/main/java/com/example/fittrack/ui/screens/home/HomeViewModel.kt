@@ -11,7 +11,11 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class HomeViewModel : ViewModel() {
+import com.example.fittrack.data.AuthManager
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+
+class HomeViewModel(private val authManager: AuthManager) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -27,22 +31,34 @@ class HomeViewModel : ViewModel() {
     )
 
     init {
+        observeAuthState()
         loadHomeData()
+    }
+
+    private fun observeAuthState() {
+        authManager.currentUser
+            .onEach { user ->
+                _uiState.update { 
+                    it.copy(
+                        loggedIn = user != null,
+                        userName = user?.name ?: ""
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun loadHomeData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Simulating data loading
             val dateLabel = getFormattedDate()
             val motivation = motivationMessages.random()
             
             _uiState.update {
                 it.copy(
-                    userName = "Ricardo", // This could come from a repository
                     dateLabel = dateLabel,
-                    streakDays = 5, // This could come from a workout repository
+                    streakDays = if (it.loggedIn) 5 else 0,
                     motivationMessage = motivation,
                     isLoading = false
                 )

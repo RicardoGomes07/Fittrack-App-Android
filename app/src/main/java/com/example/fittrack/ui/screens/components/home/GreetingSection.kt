@@ -1,4 +1,4 @@
-package com.example.fittrack.ui.screens.components
+package com.example.fittrack.ui.screens.components.home
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
@@ -10,7 +10,8 @@ import com.example.fittrack.ui.theme.FitTrackColors
 @Composable
 fun GreetingSection(
     dateLabel: String,
-    userName: String
+    userName: String,
+    isLoggedIn: Boolean = true
 ) {
     Column {
         Text(
@@ -21,7 +22,7 @@ fun GreetingSection(
             letterSpacing = 1.sp,
         )
         Text(
-            "Welcome back, $userName",
+            if (isLoggedIn) "Welcome back, $userName" else "Welcome Anonymous",
             color = FitTrackColors.OnSurface,
             fontSize = 28.sp,
             fontWeight = FontWeight.SemiBold,

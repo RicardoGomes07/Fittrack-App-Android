@@ -9,5 +9,6 @@ data class User(
     @PrimaryKey
     val id: UUID = UUID.randomUUID(),
     val name: String,
+    val nickname: String,
     val password: String
 )

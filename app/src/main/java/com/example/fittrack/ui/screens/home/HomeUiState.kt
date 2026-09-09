@@ -5,5 +5,6 @@ data class HomeUiState(
     val dateLabel: String = "",
     val streakDays: Int = 0,
     val motivationMessage: String = "",
-    val isLoading: Boolean = false
+    val isLoading: Boolean = true,
+    val loggedIn: Boolean = false
 )

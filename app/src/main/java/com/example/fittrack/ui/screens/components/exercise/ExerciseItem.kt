@@ -1,4 +1,4 @@
-package com.example.fittrack.ui.screens.components
+package com.example.fittrack.ui.screens.components.exercise
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

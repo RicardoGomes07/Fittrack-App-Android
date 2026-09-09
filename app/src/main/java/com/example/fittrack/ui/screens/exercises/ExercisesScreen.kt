@@ -1,24 +1,24 @@
 package com.example.fittrack.ui.screens.exercises
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fittrack.R
+import com.example.fittrack.model.Equipment
 import com.example.fittrack.model.Exercise
+import com.example.fittrack.model.ExerciseType
 import com.example.fittrack.model.MuscleGroup
 import com.example.fittrack.ui.screens.components.FitTrackBottomNav
 import com.example.fittrack.ui.screens.components.ExercisesList
+import com.example.fittrack.ui.theme.FitTrackColors
 import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
 import java.util.UUID
@@ -27,6 +27,7 @@ import java.util.UUID
 fun ExercisesScreen(
     onExerciseClick: (String) -> Unit,
     onNavItemSelected: (String) -> Unit = {},
+    onAddExerciseClick: () -> Unit = {},
     viewModel: ExercisesViewModel = koinViewModel()
 ) {
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
@@ -35,7 +36,7 @@ fun ExercisesScreen(
         exercises = exercises,
         onExerciseClick = onExerciseClick,
         onNavItemSelected = onNavItemSelected,
-        onAddExerciseClick = { /* TODO: Add exercise */ }
+        onAddExerciseClick = onAddExerciseClick
     )
 }
 
@@ -65,11 +66,26 @@ fun ExercisesContent(
             }
         }
     ) { paddingValues ->
-        ExercisesList(
-            exercises = exercises,
-            onExerciseClick = onExerciseClick,
-            modifier = Modifier.padding(paddingValues)
-        )
+        if (exercises.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = FitTrackColors.Primary)
+                    Spacer(Modifier.height(16.dp))
+                    Text("Loading exercises...", color = FitTrackColors.OnSurfaceVariant)
+                }
+            }
+        } else {
+            ExercisesList(
+                exercises = exercises,
+                onExerciseClick = onExerciseClick,
+                modifier = Modifier.padding(paddingValues)
+            )
+        }
     }
 }
 
@@ -81,19 +97,10 @@ fun ExercisesScreenPreview() {
             id = UUID.randomUUID(),
             name = "Bench Press",
             muscleGroup = MuscleGroup.CHEST,
-            imageRes = R.drawable.ic_chest_press
-        ),
-        Exercise(
-            id = UUID.randomUUID(),
-            name = "Squat",
-            muscleGroup = MuscleGroup.LEGS,
-            imageRes = R.drawable.ic_barbell_squat
-        ),
-        Exercise(
-            id = UUID.randomUUID(),
-            name = "Deadlift",
-            muscleGroup = MuscleGroup.BACK,
-            imageRes = R.drawable.ic_deadlift
+            description = "Foundational upper-body horizontal push strength standard",
+            imageRes = R.drawable.ic_chest_press,
+            exerciseType = ExerciseType.WEIGHT_REPS,
+            equipment = Equipment.BARBELL
         )
     )
     FitTrackTheme {
