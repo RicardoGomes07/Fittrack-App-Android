@@ -61,7 +61,7 @@ fun ProfileTopBar(state: ProfileUiState, user: User) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("🔥", fontSize = 12.sp)
-                Text("${state.streakDays} Days", color = FitTrackColors.Primary, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                Text("${state.streakDays}-Day Streak", color = FitTrackColors.Primary, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

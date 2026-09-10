@@ -456,9 +456,10 @@ private fun UnitToggleButton(label: String, selected: Boolean, onClick: () -> Un
 @Composable
 private fun ProfileScreenPreview() {
     FitTrackTheme {
+        val sampleUser = User(name = "Alex Morgan", nickname = "alex_lifts", password = "password", xp = 350, level = 1)
         ProfileContent(
-            state = ProfileUiState(),
-            user = User(name = "Alex Morgan", nickname = "alex_lifts", password = "password"),
+            state = sampleUser.toProfileUiState("kg"),
+            user = sampleUser,
             selectedNavItem = "profile",
             onNavItemSelected = {},
             onToggleUnits = {},

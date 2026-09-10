@@ -3,8 +3,7 @@ package com.example.fittrack.ui.screens.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fittrack.data.AuthManager
-import com.example.fittrack.data.model.UserRepository
-import com.example.fittrack.model.User
+import com.example.fittrack.model.Gender
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,10 +32,17 @@ class AuthViewModel(private val authManager: AuthManager) : ViewModel() {
         }
     }
 
-    fun signUp(name: String, nickname: String, password: String) {
+    fun signUp(
+        name: String,
+        nickname: String,
+        password: String,
+        weight: Double,
+        height: Int,
+        gender: Gender
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            authManager.signUp(name, nickname, password)
+            authManager.signUp(name, nickname, password, weight, height, gender)
             _uiState.update { it.copy(isLoading = false, isSuccess = true) }
         }
     }
