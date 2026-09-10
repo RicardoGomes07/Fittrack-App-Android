@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.fittrack.model.*
 
-@Database(entities = [Exercise::class, WorkoutSession::class, WorkoutSet::class, Workout::class, User::class], version = 5, exportSchema = false)
+@Database(entities = [Exercise::class, WorkoutSession::class, WorkoutSet::class, Workout::class, User::class], version = 6, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class FitTrackDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao

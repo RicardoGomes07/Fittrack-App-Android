@@ -1,12 +1,13 @@
 package com.example.fittrack.data
 
 import com.example.fittrack.data.model.UserRepository
+import com.example.fittrack.model.Gender
 import com.example.fittrack.model.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class AuthManager(private val userRepository: UserRepository) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -39,8 +40,23 @@ class AuthManager(private val userRepository: UserRepository) {
         return false
     }
 
-    suspend fun signUp(name: String, nickname: String, password: String) {
-        val newUser = User(name = name, nickname = nickname, password = password)
+    suspend fun signUp(
+        name: String,
+        nickname: String,
+        password: String,
+        weight: Double = 0.0,
+        height: Int = 0,
+        gender: Gender = Gender.OTHER
+    ) {
+        val newUser = User(
+            name = name,
+            nickname = nickname,
+            password = password,
+            weight = weight,
+            height = height,
+            gender = gender,
+            memberSince = LocalDate.now()
+        )
         userRepository.signUp(newUser)
     }
 

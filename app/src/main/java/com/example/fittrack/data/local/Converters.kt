@@ -3,6 +3,7 @@ package com.example.fittrack.data.local
 import androidx.room.TypeConverter
 import com.example.fittrack.model.Equipment
 import com.example.fittrack.model.ExerciseType
+import com.example.fittrack.model.Gender
 import com.example.fittrack.model.MuscleGroup
 import java.time.LocalDate
 import java.util.UUID
@@ -43,4 +44,10 @@ class Converters {
 
     @TypeConverter
     fun toExerciseType(value: String): ExerciseType = ExerciseType.valueOf(value)
+
+    @TypeConverter
+    fun fromGender(gender: Gender): String = gender.name
+
+    @TypeConverter
+    fun toGender(value: String): Gender = Gender.valueOf(value)
 }
