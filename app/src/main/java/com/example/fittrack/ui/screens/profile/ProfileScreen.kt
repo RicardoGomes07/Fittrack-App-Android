@@ -93,7 +93,6 @@ fun ProfileContent(
         ) {
             ProfileHero(state, user)
             LifetimeImpactSection(state)
-            VolumeHeatmapSection()
             PersonalRecordsSection(state)
             SettingsSection(state, onToggleUnits, onLogout)
             
@@ -197,61 +196,6 @@ private fun ImpactCard(
 }
 
 @Composable
-private fun VolumeHeatmapSection() {
-    Surface(
-        modifier = Modifier.padding(16.dp),
-        color = FitTrackColors.SurfaceContainerHigh,
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = FitTrackColors.Primary, modifier = Modifier.size(18.dp))
-                    Text("Volume Heatmap", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = FitTrackColors.OnSurface)
-                }
-                Text("Past 28 Days", style = MaterialTheme.typography.labelSmall, color = FitTrackColors.OnSurfaceVariant)
-            }
-
-            // Grid
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    listOf("M", "T", "W", "T", "F", "S", "S").forEach {
-                        Text(it, modifier = Modifier.width(32.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall, color = FitTrackColors.OnSurfaceVariant.copy(alpha = 0.6f))
-                    }
-                }
-                
-                repeat(4) { week ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        repeat(7) { day ->
-                            val color = when {
-                                (week + day) % 3 == 0 -> FitTrackColors.Primary
-                                (week + day) % 5 == 0 -> FitTrackColors.Secondary
-                                else -> FitTrackColors.SurfaceContainerLowest
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(color),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (week == 0 && day == 0) Text("1", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = FitTrackColors.OnPrimary)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                LegendItem("Heavy Lift", FitTrackColors.Primary)
-                LegendItem("Recovery", FitTrackColors.Secondary)
-                LegendItem("Rest Day", FitTrackColors.SurfaceContainerLowest)
-            }
-        }
-    }
-}
-
-@Composable
 private fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(modifier = Modifier.size(8.dp).background(color, RoundedCornerShape(2.dp)))
@@ -261,6 +205,8 @@ private fun LegendItem(label: String, color: Color) {
 
 @Composable
 private fun PersonalRecordsSection(state: ProfileUiState) {
+    if (state.prs.isEmpty()) return
+
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -273,15 +219,16 @@ private fun PersonalRecordsSection(state: ProfileUiState) {
             }
         }
 
-        val prs = state.prs
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PRCard(modifier = Modifier.weight(1f), pr = prs[0])
-                PRCard(modifier = Modifier.weight(1f), pr = prs[1])
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PRCard(modifier = Modifier.weight(1f), pr = prs[2])
-                PRCard(modifier = Modifier.weight(1f), pr = prs[3])
+            state.prs.chunked(2).forEach { rowPrs ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    rowPrs.forEach { pr ->
+                        PRCard(modifier = Modifier.weight(1f), pr = pr)
+                    }
+                    if (rowPrs.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }

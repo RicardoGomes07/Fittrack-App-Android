@@ -58,7 +58,7 @@ class HomeViewModel(private val authManager: AuthManager) : ViewModel() {
             _uiState.update {
                 it.copy(
                     dateLabel = dateLabel,
-                    streakDays = if (it.loggedIn) 5 else 0,
+                    streakDays = 0,
                     motivationMessage = motivation,
                     isLoading = false
                 )

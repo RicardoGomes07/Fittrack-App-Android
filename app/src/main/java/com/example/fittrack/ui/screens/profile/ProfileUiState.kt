@@ -49,20 +49,14 @@ fun User.toProfileUiState(currentSystem: String): ProfileUiState {
         height = height,
         gender = gender.name.lowercase().replaceFirstChar { it.uppercase() },
         unitSystem = currentSystem,
-        // Mocking some stats for now as we don't have workout history fully implemented
-        streakDays = 14,
-        consistency = 92.4,
-        workouts = 184,
-        workoutsChange = 12,
-        tonnage = 412.5,
-        hoursTrained = 156,
-        avgSessionMinutes = 54,
-        monthlyPRs = 7,
-        prs = listOf(
-            PersonalRecord("Squat", 140, "kg", "Oct 24 • +5kg gain"),
-            PersonalRecord("Bench Press", 105, "kg", "Nov 02 • +2.5kg gain"),
-            PersonalRecord("Deadlift", 185, "kg", "3 days ago • Epley est.", isNew = true),
-            PersonalRecord("OHP", 65, "kg", "Sep 18 • Verified")
-        )
+        streakDays = 0,
+        consistency = 0.0,
+        workouts = 0,
+        workoutsChange = 0,
+        tonnage = 0.0,
+        hoursTrained = 0,
+        avgSessionMinutes = 0,
+        monthlyPRs = 0,
+        prs = emptyList()
     )
 }
