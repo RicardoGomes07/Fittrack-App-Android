@@ -7,5 +7,6 @@ enum class Screen {
     EXERCISE_ADD,
     PROFILE,
     LOGIN,
-    SIGN_UP
+    SIGN_UP,
+    ACTIVE_WORKOUT
 }

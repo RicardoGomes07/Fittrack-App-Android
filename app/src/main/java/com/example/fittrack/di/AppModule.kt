@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.fittrack.R
 import com.example.fittrack.data.insertInitialExercises
 import com.example.fittrack.data.local.FitTrackDatabase
+import com.example.fittrack.data.local.MIGRATION_6_7
 import com.example.fittrack.data.model.ExerciseRepository
 import com.example.fittrack.data.model.SetRepository
 import com.example.fittrack.data.model.WorkoutRepository
@@ -20,6 +21,7 @@ import com.example.fittrack.ui.screens.exercises.ExerciseDetailViewModel
 import com.example.fittrack.ui.screens.exercises.ExercisesViewModel
 import com.example.fittrack.ui.screens.home.HomeViewModel
 import com.example.fittrack.ui.screens.profile.ProfileViewModel
+import com.example.fittrack.ui.screens.workout.ActiveWorkoutViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 
@@ -30,6 +32,7 @@ val appModule = module {
             FitTrackDatabase::class.java,
             "fittrack_database"
         )
+            .addMigrations(MIGRATION_6_7)
             .fallbackToDestructiveMigration(true)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
@@ -71,4 +74,5 @@ val appModule = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::ProfileViewModel)
     viewModelOf(::AuthViewModel)
+    viewModelOf(::ActiveWorkoutViewModel)
 }
