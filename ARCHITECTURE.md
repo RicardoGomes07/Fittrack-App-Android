@@ -28,7 +28,7 @@ MainActivity
                       │
                    DAO (Room)
                       │
-            FitTrackDatabase (SQLite, v6)
+            FitTrackDatabase (SQLite, v7)
 ```
 
 **Layer rules as implemented:**
@@ -55,10 +55,12 @@ com.example.fittrack/
 │   └── AppModule.kt          The only Koin module (DB, DAOs, repositories, AuthManager, ViewModels)
 ├── data/
 │   ├── AuthManager.kt        App-wide session holder
+│   ├── PasswordHasher.kt     PBKDF2 hashing (JDK only, no library)
 │   ├── InsertData.kt         Seed data (22 exercises) + raw-SQLite insert helper
-│   ├── local/                FitTrackDatabase, 5 DAOs, Converters
+│   ├── local/                FitTrackDatabase, 5 DAOs, Converters, Migrations (6 → 7)
 │   └── model/                5 repositories (despite the package name)
-├── model/                    Room entities + enums + the Screen route enum
+├── model/                    Room entities + enums + the Screen route enum, query result types
+│                             (SetHistory, SessionSummary) and ExerciseRecords (PR / 1RM logic)
 └── ui/
     ├── navigation/
     │   └── AppNavHost.kt     All routes and navigation behaviour
@@ -67,6 +69,7 @@ com.example.fittrack/
     │   ├── home/             HomeScreen, HomeViewModel, HomeUiState
     │   ├── exercises/        List, Detail, Add screens + 2 ViewModels
     │   ├── profile/          ProfileScreen, ProfileViewModel, ProfileUiState
+    │   ├── workout/          ActiveWorkoutScreen, ActiveWorkoutViewModel, ActiveWorkoutUiState, formatting
     │   └── components/       Reusable widgets, grouped by feature (home/, exercise/, profile/)
     └── theme/                FitTrackColors, FitTrackTheme, typography
 ```
@@ -92,28 +95,33 @@ There are no services, broadcast receivers, content providers, or `WorkManager` 
 
 | Component | Responsibility |
 |---|---|
-| `FitTrackDatabase` | Room database, **version 6**, `exportSchema = false`, file name `fittrack_database`. Entities: `Exercise`, `User`, `Workout`, `WorkoutSession`, `WorkoutSet`. |
+| `FitTrackDatabase` | Room database, **version 7**, `exportSchema = false`, file name `fittrack_database`. Entities: `Exercise`, `User`, `Workout`, `WorkoutSession`, `WorkoutSet`. `workout_sessions` (FK `userId` → users, CASCADE; `startedAt`/`endedAt` epoch millis, active while `endedAt IS NULL`) and `sets` (FK `exerciseId` → exercises, RESTRICT; FK `sessionId` → sessions, CASCADE; `position`, `isCompleted`) are indexed on their foreign keys. |
+| `MIGRATION_6_7` | `data/local/Migrations.kt`. Rebuilds `users` (hashes the existing plaintext password, adds `isLoggedIn`, unique `nickname`, `password` → `passwordHash`) and the two workout tables; `exercises` and `workouts` are untouched. Registered in `AppModule` next to `fallbackToDestructiveMigration(true)`. Its DDL was verified against Room's generated v7 schema. |
 | `Converters` | Type converters for `UUID` ↔ `String`, `LocalDate` ↔ epoch-day `Long`, all enums ↔ name, and `List<UUID>` ↔ comma-joined `String`. |
-| `ExerciseDao` | `getAllExercises(): Flow<List<Exercise>>`, get-by-id, insert (REPLACE), update, delete. |
-| `UserDao` | `getLoggedInUser(): Flow<User?>` = `SELECT * FROM users LIMIT 1`; `login(nickname, password)`; `insertUser` (REPLACE); `logout()` = `DELETE FROM users`. |
-| `WorkoutDao`, `WorkoutSessionDao`, `SetDao` | Standard CRUD. **Currently unused by any ViewModel.** |
+| `ExerciseDao` | `getAllExercises(): Flow<List<Exercise>>`, get-by-id, insert (**ABORT** — a duplicate name throws instead of replacing the row, because logged sets now reference exercises), update, delete. |
+| `UserDao` | `getLoggedInUser(): Flow<User?>` = `WHERE isLoggedIn = 1 LIMIT 1`; `getByNickname`; `insertUser` (ABORT, nickname is unique); `setLoggedInUser(id)` = `UPDATE users SET isLoggedIn = (id = :id)` (one statement switches the active account); `logout()` = `UPDATE users SET isLoggedIn = 0`. |
+| `WorkoutSessionDao` | CRUD plus `getActiveSession(userId)` and `getRecentSessionSummaries(userId, limit)` (finished sessions, aggregated over *completed* sets with a `LEFT JOIN`). |
+| `SetDao` | CRUD plus sets-for-session ordered by `position`, `getSetHistory(userId, exerciseId)` (completed sets joined to their session, for PRs), targeted `updateValues` / `updateCompleted`, and bulk deletes (`deleteSetsForExercise`, `deleteIncompleteSets`). |
+| `WorkoutDao` | Standard CRUD. **Unused by any ViewModel** (reserved for workout templates). |
 | `ExerciseRepository`, `UserRepository`, `WorkoutRepository`, `WorkoutSessionRepository`, `SetRepository` | One-line delegations to their DAO. |
-| `AuthManager` | The session holder. Not a ViewModel — an app-scoped Koin `single`. See §5. |
+| `AuthManager` | The session holder. Not a ViewModel — an app-scoped Koin `single`. `login` / `signUp` hash and verify on `Dispatchers.Default`; `signUp` returns `false` when the nickname is taken. See §5. |
+| `PasswordHasher` | `hash` / `verify`, PBKDF2WithHmacSHA1, 120 000 iterations, random 16-byte salt, stored as `pbkdf2$iterations$saltHex$hashHex`, constant-time compare. SHA-1 variant because the SHA-2 variants need API 26 and `minSdk` is 24. |
 | `insertInitialExercises(db)` | Seeds 22 exercises using raw `ContentValues` + `db.insert(..., CONFLICT_IGNORE, ...)` inside an explicit transaction. The Room callback receives a `SupportSQLiteDatabase`, so the seed uses raw SQL instead of DAOs. |
 
 ### Presentation layer
 
 | ViewModel | Exposes | Notes |
 |---|---|---|
-| `HomeViewModel` | `uiState: StateFlow<HomeUiState>` | Formats the date label, picks a random motivation message, mirrors auth state. `streakDays` is hardcoded to `0`. |
+| `HomeViewModel` | `uiState: StateFlow<HomeUiState>` | Formats the date label, picks a random motivation message, mirrors auth state, and follows `currentUser` → `hasActiveWorkout` + the 5 most recent finished sessions (`SessionSummary`). `streakDays` is still hardcoded to `0`. |
 | `ExercisesViewModel` | `exercises: StateFlow<List<Exercise>>`, `loggedInUser` | Also serves `ExerciseAddScreen` via `addExercise(ExerciseInput)`. |
-| `ExerciseDetailViewModel` | `exercise: StateFlow<Exercise?>`, `loggedInUser` | `loadExercise(id: String)` parses the UUID from the route argument. |
+| `ExerciseDetailViewModel` | `exercise: StateFlow<Exercise?>`, `records: StateFlow<ExerciseRecords?>`, `loggedInUser` | `loadExercise(id: String)` parses the UUID from the route argument. `records` = `combine(exercise, currentUser)` → `SetRepository.getSetHistory` → `toExerciseRecords()`. |
+| `ActiveWorkoutViewModel` | `uiState: StateFlow<ActiveWorkoutUiState>` | Live workout. `uiState` combines `isInitialized`, the user's active session, its sets, all exercises, and a 1 s ticker + `restEndsAt`. Writes go straight to Room (session survives process death; elapsed time is derived from the stored `startedAt`). The rest timer (default 90 s, ±15 s) is in-memory. Actions: `startWorkout`, `addExercise` / `addExerciseFromRoute`, `addSet` (prefilled from the exercise's previous set), `updateSetValues`, `toggleSetCompleted` (starts the rest timer), `deleteSet`, `removeExercise`, `adjustRest`, `skipRest`, `finishWorkout`, `discardWorkout`. |
 | `ProfileViewModel` | `uiState`, `loggedInUser`, `isInitialized` | `combine(currentUser, _unitSystem)` → `User.toProfileUiState()`. Owns `toggleUnitSystem()` and `logout()`. |
-| `AuthViewModel` | `uiState: StateFlow<AuthUiState>` | `AuthUiState(isLoading, error, isSuccess)`. Screens react to `isSuccess` in a `LaunchedEffect`, then call `resetState()`. |
+| `AuthViewModel` | `uiState: StateFlow<AuthUiState>` | `AuthUiState(isLoading, error, isSuccess)`. Screens react to `isSuccess` in a `LaunchedEffect`, then call `resetState()`. Sign-up reports "Nickname already taken"; login reports "Invalid credentials". Both screens render `error`. |
 
 ### UI conventions
 
-Five of the seven screens are split in two (Home, Exercises, ExerciseDetails, ExerciseAdd, Profile).
+Six of the eight screens are split in two (Home, Exercises, ExerciseDetails, ExerciseAdd, Profile, ActiveWorkout).
 `LoginScreen` and `SignUpScreen` are the exceptions: a single composable with no `*Content` and no
 previews. **Keep the split for new screens:**
 
@@ -127,6 +135,11 @@ fun ProfileContent(state: ProfileUiState, …) { … }                       // 
 
 Colors come from the custom `FitTrackColors` object rather than `MaterialTheme.colorScheme`; the
 palette is a fixed dark theme.
+
+Logic worth unit-testing is kept in plain top-level functions so it runs on the JVM without Android:
+`toExerciseRecords` / `estimateOneRepMax` (`model/ExerciseRecords.kt`), `buildExerciseLogs` /
+`restRemainingSeconds` (`ActiveWorkoutUiState.kt`), `formatDuration` / `formatWeight`
+(`WorkoutFormat.kt`), and `PasswordHasher`.
 
 ---
 
@@ -155,13 +168,17 @@ as direct calls into another ViewModel.
 | `isLoggedIn: StateFlow<Boolean>` | `currentUser != null`. **Not read by anything outside `AuthManager`** — consumers use `currentUser`. |
 | `isInitialized: StateFlow<Boolean>` | `false` until the first DB emission. Only `ProfileScreen` waits on it; Home and Exercises don't, so they render the guest state (guest card, no add-FAB) until the first emission. |
 
-`HomeViewModel`, `ProfileViewModel`, `ExercisesViewModel` and `ExerciseDetailViewModel` all consume
-`AuthManager`, so a login or logout propagates everywhere without any navigation event.
+`HomeViewModel`, `ProfileViewModel`, `ExercisesViewModel`, `ExerciseDetailViewModel` and
+`ActiveWorkoutViewModel` all consume `AuthManager`, so a login or logout propagates everywhere without any navigation event.
 
 **Navigation.** Routes are the names of the `Screen` enum (`Screen.HOME.name` etc.). The bottom nav
 uses its own string keys — `"dashboard"`, `"exercises"`, `"profile"` — which `AppNavHost` maps to
 routes inside each screen's `onNavItemSelected` lambda. Tab switches use
 `popUpTo(startDestination) { saveState = true }` + `launchSingleTop` + `restoreState`.
+
+`ACTIVE_WORKOUT` is the one route with an optional argument: `ACTIVE_WORKOUT?exerciseId={exerciseId}`
+(nullable, default null). Home navigates to it bare; the exercise detail screen passes the exercise id,
+which the workout screen hands to `addExerciseFromRoute` (guarded so recomposition cannot add it twice).
 
 ---
 
@@ -209,16 +226,52 @@ The list refreshes automatically because it is backed by a Room `Flow`. No manua
 ### Authentication
 
 ```
-SignUpScreen → AuthViewModel.signUp() → AuthManager.signUp() → UserRepository.signUp()
-  → UserDao.insertUser(user)
-  → users table now has a row
-  → UserDao.getLoggedInUser() Flow re-emits
-  → AuthManager.currentUser updates
-  → every subscribed ViewModel updates
+SignUpScreen → AuthViewModel.signUp() → AuthManager.signUp()
+  → nickname already exists?  yes → returns false → AuthUiState.error = "Nickname already taken"
+  → PasswordHasher.hash()  (Dispatchers.Default)
+  → UserRepository.signUp(): insertUser(isLoggedIn = false), then setLoggedInUser(id)
+  → getLoggedInUser() Flow re-emits → AuthManager.currentUser → every subscribed ViewModel
   → AuthUiState.isSuccess = true → LaunchedEffect navigates to PROFILE
+
+LoginScreen → AuthViewModel.login() → AuthManager.login()
+  → UserRepository.findByNickname() → PasswordHasher.verify() (Dispatchers.Default) → setLoggedInUser(id)
+
+Logout → UserDao.logout() = UPDATE users SET isLoggedIn = 0
+  → Flow emits null → screens revert to their guest state. The account and its workout history remain.
 ```
 
-Logout runs `DELETE FROM users`, the Flow emits `null`, and all screens revert to their guest state.
+The session marker is the `isLoggedIn` column on the user row (no separate store, no extra dependency).
+
+### Workout logging
+
+```
+Home "Start workout" / "Resume workout"      ─┐
+Exercise detail "Add to Today's Workout"     ─┴→ navigate ACTIVE_WORKOUT[?exerciseId=…]
+
+ActiveWorkoutScreen: LaunchedEffect(addExerciseId) → ViewModel.addExerciseFromRoute()
+  → ensureSession(): the user's session with endedAt IS NULL, else insert WorkoutSession(userId, startedAt = now)
+  → appendSet(): insert WorkoutSet(position = last + 1, weight/reps copied from the exercise's previous set)
+
+Edit weight/reps  → SetDao.updateValues(id, weight, reps)   (on every change; both values come from the row)
+Mark set done     → SetDao.updateCompleted(id, true), restEndsAt = now + rest duration
+uiState           = combine(isInitialized, active session, its sets, all exercises, ticker + restEndsAt)
+Finish            → deleteIncompleteSets(); no sets left → delete the session, else set endedAt; popBackStack
+Discard           → delete the session (its sets cascade)
+```
+
+An exercise is "in" the workout only by having sets: adding one inserts its first set, and deleting its
+last set removes it. There is no separate workout-exercise table.
+
+### Records and history
+
+```
+ExerciseDetailViewModel.records
+  = combine(exercise, currentUser) → SetDao.getSetHistory(userId, exerciseId) → toExerciseRecords()
+  → PersonalRecordsWidget (heaviest completed set; 1RM = best Epley estimate)
+
+HomeViewModel: currentUser → combine(getActiveSession(userId), getRecentSessionSummaries(userId, 5))
+  → HomeUiState.hasActiveWorkout / recentSessions → WorkoutActivitySection
+```
 
 ---
 
@@ -239,6 +292,7 @@ Kotlin DSL and KSP.
 | Navigation | `navigation-compose` | 2.10.0 |
 | Concurrency | Coroutines + Flow | via Kotlin |
 | Desugaring | `desugar_jdk_libs` | 2.1.4 |
+| Password hashing | `javax.crypto` PBKDF2 (platform, no library) | — |
 
 **SDK levels:** `minSdk 24`, `targetSdk 37`, `compileSdk 37`, Java 11.
 
@@ -247,92 +301,106 @@ which is API 26+. `isCoreLibraryDesugaringEnabled = true` is what keeps `minSdk 
 remove it.
 
 **Implicit dependency:** `collectAsStateWithLifecycle` is used across all screens but
-`androidx.lifecycle:lifecycle-runtime-compose` is **not declared** in `app/build.gradle.kts`; it
-is not a direct dependency: the project compiles because other Compose libraries
-(`navigation-compose`, `activity-compose`) depend on it. Declare it explicitly before it breaks.
+`androidx.lifecycle:lifecycle-runtime-compose` is **not declared** in `app/build.gradle.kts`; the
+project compiles because other Compose libraries (`navigation-compose`, `activity-compose`) depend on
+it. Declare it explicitly before it breaks.
 
 ### Testing
 
-| Test | Scope |
-|---|---|
-| `DatabaseSeedingTest` | Instrumented. Deletes the DB in `@Before`, injects `FitTrackDatabase` via `KoinTest`, asserts the exercise table is seeded. |
-| `ExampleInstrumentedTest`, `ExampleUnitTest` | Unmodified project templates. |
+| Test | Scope | Status |
+|---|---|---|
+| `PasswordHasherTest` | JVM. Round trip, wrong password, salting, format, malformed/legacy stored values. | Runs: `./gradlew :app:testDebugUnitTest` |
+| `ExerciseRecordsTest` | JVM. Epley 1RM, PR selection and tie-breaks, bodyweight, empty input. | Runs |
+| `ActiveWorkoutLogicTest` | JVM. Exercise grouping/order, rest-timer rounding, duration and weight formatting. | Runs |
+| `WorkoutLoggingDaoTest` | Instrumented, in-memory Room. Login switching / logout keeps the account, unique nickname, duplicate exercise rejected, FK RESTRICT / CASCADE, active session, summaries (completed sets, per user, limit, `LEFT JOIN`), set history, targeted set updates, bulk deletes. | **Compiles; not run** (no device or emulator) |
+| `Migration6To7Test` | Instrumented. Builds a real v6 database by hand, opens it through Room with `MIGRATION_6_7` (Room validates the result against the v7 entities), checks the account, hash, login state and exercises survive and the new tables enforce foreign keys. | **Compiles; not run** |
+| `DatabaseSeedingTest` | Instrumented. Deletes the DB in `@Before`, injects `FitTrackDatabase` via `KoinTest`, asserts the exercise table is seeded. | Pre-existing |
+| `ExampleInstrumentedTest`, `ExampleUnitTest` | Unmodified project templates. | Pre-existing |
 
-There are no ViewModel, repository or `AuthManager` unit tests, and no Compose UI tests.
+There are no ViewModel tests (repositories are concrete classes and `kotlinx-coroutines-test` is not a
+dependency) and no Compose UI tests.
 
 ---
 
 ## 8. Known limitations and unfinished features
 
-### Authentication is structurally incomplete
+### Verification status
 
-The `users` table serves as **both the account store and the session marker**, which makes the
-implemented login flow unreachable:
+The workout feature and the auth change were built and unit-tested on the JVM, but **never run on a
+device or emulator** (none was available). Specifically unobserved: Room's on-device validation of
+`MIGRATION_6_7`, the two instrumented test classes, and every new screen at runtime. The migration's
+SQL was checked separately: its statements are identical to Room's generated v7 DDL, and running them on
+a hand-built v6 database (SQLite 3.46, foreign keys on) produced a structurally identical schema with the
+data preserved. Treat a first run on a real device with an existing v6 install as the acceptance test.
 
-- `logout()` is `DELETE FROM users`, so logging out **permanently deletes the account**.
-- `getLoggedInUser()` is `SELECT * FROM users LIMIT 1`, so while any account row exists the app is
-  always logged in. There is no state in which a returning user can log in, and
-  `AuthManager.login()` therefore only ever fails. `LoginScreen` is effectively unreachable.
-- `AuthManager.login()` calls `userRepository.signUp(user)` to "mark as logged in" — a REPLACE of the
-  row it just read, i.e. a no-op.
-- Passwords are stored and compared in **plaintext**.
-- `nickname` has no unique index and signup performs no duplicate check.
+### Authentication
 
-Fixing this requires separating account storage from session storage (e.g. keep all users in the
-table, persist the active user id in DataStore) and hashing passwords. **This blocks every
-user-scoped feature.**
+Account storage and session state are separated: logout no longer deletes anything, login is reachable,
+passwords are hashed, and nicknames are unique. Remaining limits:
 
-### The workout domain is scaffolding only
+- The session is a flag on the user row (`isLoggedIn`), so account and session still share a table.
+  Fine for a single-device app; a real multi-account or sync story would want a separate store.
+- Nicknames are case-sensitive (`Alex` and `alex` are different accounts). No password rules, lockout,
+  change-password, profile editing or account deletion.
+- PBKDF2WithHmacSHA1 at 120 000 iterations (the SHA-2 variants need API 26; `minSdk` is 24).
+- `AuthManager.isLoggedIn` is still read by nothing, and its scope (`Dispatchers.Main`) is never cancelled.
+- Signing up while a session exists is not reachable from the UI; if it were, the new account would
+  replace the active one.
 
-`Workout`, `WorkoutSession` and `WorkoutSet` have entities, DAOs and repositories registered in Koin,
-but **no ViewModel or screen consumes them**. There is no session logging and no analytics; the
-Analytics bottom-nav item is commented out (`ui/screens/components/home/FitTrackBottomNav.kt:28`).
+### Workout logging
 
-The current schema cannot support the planned features as-is:
+Implemented: live session with elapsed and rest timers, sets with weight/reps, completion, history on
+Home, and real PRs on the exercise detail screen. Limitations:
 
-- `Workout.exerciseIds` is a comma-joined `String`, not a junction table — it cannot be queried or
-  joined and has no referential integrity.
-- There are **no foreign keys and no indices** on `WorkoutSet.exerciseId` / `WorkoutSet.sessionId` /
-  `WorkoutSession.workoutId`, so deletes leave orphan rows.
-- `WorkoutSession` has only a `LocalDate` (no start/end timestamps) and no `userId`.
-- `WorkoutSet` has no RPE, no set ordering and no duration/distance fields, although
-  `ExerciseType.DURATION` and `ExerciseType.DISTANCE` exist.
-
-Redesign the schema **before** building the logging UI.
+- Sets record only `reps` and `weight` (**kg only**; the Profile kg/lbs toggle does not affect these
+  screens). `ExerciseType.DURATION` / `DISTANCE` exercises (creatable in the Add screen, none seeded)
+  have no duration or distance field. Plank is seeded as `BODYWEIGHT` and is logged in reps.
+- One active workout per user. Finished sessions cannot be edited or deleted and have no detail screen;
+  Home lists only the 5 most recent summaries.
+- The rest timer is in-memory (lost if the process dies), has no sound, vibration or notification, and
+  its length resets to 90 s when the ViewModel is recreated.
+- Leaving an empty active workout keeps it "active" (Home shows "Resume workout") until it is finished
+  or discarded. Finishing keeps completed sets only, and discards a workout with none.
+- New sets are prefilled from the exercise's previous set *in the same workout*, not from history.
+- PR definition: the heaviest completed set (ties: more reps, then most recent); 1RM is the best Epley
+  estimate over completed sets with reps > 0; bodyweight exercises show best reps. Sets count as soon as
+  they are marked done, including in a workout still in progress.
+- **Templates are not implemented.** `Workout` (table, DAO, repository) is still unused and its
+  `exerciseIds` is still a comma-joined string; a junction table is needed first. `WorkoutSession` no
+  longer has a `workoutId`. Analytics is not started (nav item still commented out in
+  `FitTrackBottomNav.kt:28`).
+- Workout history is stored per `userId` and cascades with the user, but there is no UI to delete an
+  account, and no UI to delete an exercise (an exercise with logged sets cannot be deleted: FK RESTRICT).
 
 ### Placeholder UI not backed by data
 
 - `ProfileUiState` statistics (`workouts`, `tonnage`, `hoursTrained`, `avgSessionMinutes`,
-  `monthlyPRs`, `consistency`, `streakDays`, `prs`) are all hardcoded to `0`/empty in
-  `User.toProfileUiState()`, while the Profile UI displays fixed strings such as "Updated 2h ago",
-  "Synced with Pixel Watch 3" and "17:30 Gym time alert active". `isPro` defaults to `true`.
-- `PersonalRecordsWidget()` in `ExerciseDetailsScreen.kt:341` takes no parameters — its 105 kg PR,
-  114 kg 1RM and "Logged Oct 18, 2024" are literals.
+  `monthlyPRs`, `consistency`, `streakDays`, `prs`) are still hardcoded to `0`/empty in
+  `User.toProfileUiState()`, while the Profile UI shows fixed strings such as "Updated 2h ago", "Synced
+  with Pixel Watch 3" and "17:30 Gym time alert active". `isPro` defaults to `true`. The data to compute
+  most of these now exists (sessions and sets) but is not wired.
+- `HomeViewModel.streakDays` is still `0`.
 - The kg/lbs toggle changes the label only; **no value conversion is applied**.
-- Dead controls with empty `onClick`: the detail screen's `BottomStickyBar` ("Add to Today's
-  Workout", video demo), "Account Security & Privacy", and all `SettingsItem` rows.
-- `HomeScreen.kt:102` — the logged-in dashboard is a bare "Your Activity" heading (`TODO`).
+- Dead controls with empty `onClick`: the detail screen's video demo button, "Account Security &
+  Privacy", and all `SettingsItem` rows.
 
-### Correctness issues to be aware of
+### Correctness and tech debt
 
-- **Duplicate exercise names silently replace existing rows.** `exercises.name` carries a unique
-  index and `insertExercise` uses `OnConflictStrategy.REPLACE`, but `addExercise` generates a fresh
-  `UUID`. Adding an existing name deletes the old row and inserts a new id, orphaning any sets that
-  referenced it. There is no duplicate check in the Add screen.
-- **Exceptions are swallowed.** `ExercisesViewModel.addExercise` and
-  `ExerciseDetailViewModel.loadExercise` catch and discard. An invalid UUID leaves the detail screen
-  blank with no error shown.
+- **Duplicate exercise names are now rejected** (insert is ABORT, name is unique) instead of silently
+  replacing the row, but the failure is swallowed: `ExercisesViewModel.addExercise` catches and discards
+  it and the Add screen pops back regardless, so the user sees nothing.
+- **Other exceptions are swallowed.** `ExerciseDetailViewModel.loadExercise` catches and discards; an
+  invalid UUID leaves the detail screen blank with no error shown.
 - **Empty is rendered as loading.** `ExercisesScreen` shows "Loading exercises…" whenever the list is
-  empty, so a genuinely empty table spins forever. There is no empty or error state.
+  empty.
 - **`imageRes` stores an `R.drawable` int in the database.** Resource ids are not guaranteed stable
-  across builds while seeded rows persist, so icons can break after a rebuild. Prefer storing the
-  drawable *name* and resolving it at render time.
-- **Destructive migrations are enabled.** `fallbackToDestructiveMigration(true)` with
-  `exportSchema = false` at version 6 means every schema change wipes user data. Acceptable
-  pre-release; switch to exported schemas and real migrations before shipping.
+  across builds while seeded rows persist. Prefer storing the drawable *name*.
+- **Destructive migrations are still enabled** as the fallback (`fallbackToDestructiveMigration(true)`,
+  `exportSchema = false`). Only 6 → 7 has a real migration; any other older version wipes the data.
+  Export schemas and use `MigrationTestHelper` before shipping.
+- Home and Exercises do not wait for `AuthManager.isInitialized`, so they render the guest state until
+  the first emission; only Profile and the workout screen do.
 - **Bottom-nav selection is hardcoded per screen** rather than derived from
   `currentBackStackEntryAsState()`.
-- `AuthManager` holds an app-lifetime scope on `Dispatchers.Main` that is never cancelled;
-  `Dispatchers.Default` would be more appropriate for DB-driven work.
 - `di/AppModule.kt` has unused imports (`ContentValues`, `SQLiteDatabase`, `R`).
 - `DatabaseSeedingTest` asserts at least 13 exercises; the seed actually contains 22.
