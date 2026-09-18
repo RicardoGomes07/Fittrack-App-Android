@@ -2,6 +2,8 @@ package com.example.fittrack.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -14,6 +16,7 @@ import com.example.fittrack.ui.screens.exercises.ExerciseDetailsScreen
 import com.example.fittrack.ui.screens.exercises.ExercisesScreen
 import com.example.fittrack.ui.screens.home.HomeScreen
 import com.example.fittrack.ui.screens.profile.ProfileScreen
+import com.example.fittrack.ui.screens.workout.ActiveWorkoutScreen
 
 @Composable
 fun AppNavHost(
@@ -25,6 +28,7 @@ fun AppNavHost(
     ) {
         composable(Screen.HOME.name) {
             HomeScreen(
+                onStartWorkout = { navController.navigate(Screen.ACTIVE_WORKOUT.name) },
                 onNavItemSelected = { route ->
                     val destination = when (route) {
                         "exercises" -> Screen.EXERCISES.name
@@ -125,6 +129,22 @@ fun AppNavHost(
             ExerciseDetailsScreen(
                 exerciseId = exerciseId,
                 onBack = { navController.popBackStack() },
+                onAddToWorkout = { id ->
+                    navController.navigate("${Screen.ACTIVE_WORKOUT.name}?exerciseId=$id")
+                },
+            )
+        }
+        composable(
+            route = "${Screen.ACTIVE_WORKOUT.name}?exerciseId={exerciseId}",
+            arguments = listOf(navArgument("exerciseId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            ActiveWorkoutScreen(
+                addExerciseId = backStackEntry.arguments?.getString("exerciseId"),
+                onBack = { navController.popBackStack() }
             )
         }
     }

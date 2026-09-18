@@ -34,6 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.fittrack.R
 import com.example.fittrack.model.Equipment
 import com.example.fittrack.model.Exercise
+import com.example.fittrack.model.ExerciseRecords
+import com.example.fittrack.ui.screens.workout.formatSessionDate
+import com.example.fittrack.ui.screens.workout.formatWeight
+import kotlin.math.roundToInt
 import com.example.fittrack.model.ExerciseType
 import com.example.fittrack.model.MuscleGroup
 import com.example.fittrack.ui.theme.FitTrackColors
@@ -45,6 +49,7 @@ import java.util.UUID
 fun ExerciseDetailsScreen(
     exerciseId: String?,
     onBack: () -> Unit,
+    onAddToWorkout: (String) -> Unit = {},
     viewModel: ExerciseDetailViewModel = koinViewModel()
 ) {
     LaunchedEffect(exerciseId) {
@@ -53,10 +58,14 @@ fun ExerciseDetailsScreen(
 
     val exercise by viewModel.exercise.collectAsStateWithLifecycle()
     val loggedInUser by viewModel.loggedInUser.collectAsStateWithLifecycle()
+    val records by viewModel.records.collectAsStateWithLifecycle()
 
     ExerciseDetailsContent(
         exercise = exercise,
-        onBack = onBack
+        onBack = onBack,
+        records = records,
+        canAddToWorkout = loggedInUser != null,
+        onAddToWorkout = { exercise?.let { onAddToWorkout(it.id.toString()) } }
     )
 }
 
@@ -65,6 +74,9 @@ fun ExerciseDetailsScreen(
 fun ExerciseDetailsContent(
     exercise: Exercise?,
     onBack: () -> Unit,
+    records: ExerciseRecords? = null,
+    canAddToWorkout: Boolean = false,
+    onAddToWorkout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -91,7 +103,7 @@ fun ExerciseDetailsContent(
             )
         },
         bottomBar = {
-            BottomStickyBar()
+            BottomStickyBar(canAddToWorkout, onAddToWorkout)
         }
     ) { paddingValues ->
         if (exercise == null) {
@@ -120,7 +132,7 @@ fun ExerciseDetailsContent(
                 Spacer(Modifier.height(16.dp))
 
                 // PRs Widget
-                PersonalRecordsWidget()
+                PersonalRecordsWidget(records)
 
                 Spacer(Modifier.height(24.dp))
             }
@@ -338,7 +350,9 @@ private fun HotspotTag(icon: ImageVector, text: String, color: Color) {
 }
 
 @Composable
-private fun PersonalRecordsWidget() {
+private fun PersonalRecordsWidget(records: ExerciseRecords?) {
+    // Bodyweight exercises log no load, so their PR is reps rather than weight.
+    val weighted = records?.takeIf { it.bestWeight > 0.0 }
     Surface(
         color = FitTrackColors.SurfaceContainer,
         shape = RoundedCornerShape(16.dp),
@@ -358,24 +372,36 @@ private fun PersonalRecordsWidget() {
                         color = FitTrackColors.OnSurface
                     )
                 }
-                Text("Logged Oct 18, 2024", style = MaterialTheme.typography.bodySmall, color = FitTrackColors.OnSurfaceVariant)
+                Text(
+                    if (records != null) "Logged ${formatSessionDate(records.bestWeightDate, "MMM d, yyyy")}" else "No sets logged yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FitTrackColors.OnSurfaceVariant
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PRBox(
                     modifier = Modifier.weight(1f),
                     label = "Current Best Rep PR",
-                    value = "105",
-                    unit = "kg",
-                    extra = "× 3",
-                    trend = "+5.0 kg this block"
+                    value = when {
+                        records == null -> "—"
+                        weighted != null -> formatWeight(weighted.bestWeight)
+                        else -> records.bestWeightReps.toString()
+                    },
+                    unit = when {
+                        records == null -> ""
+                        weighted != null -> "kg"
+                        else -> "reps"
+                    },
+                    extra = weighted?.let { "× ${it.bestWeightReps}" },
+                    trend = if (records == null) "Complete a set to set your first PR" else "Heaviest completed set"
                 )
                 PRBox(
                     modifier = Modifier.weight(1f),
                     label = "Calculated 1RM",
-                    value = "114",
-                    unit = "kg",
-                    trend = "Formula: Epley (RPE 9.5)",
+                    value = weighted?.estimatedOneRepMax?.roundToInt()?.toString() ?: "—",
+                    unit = if (weighted != null) "kg" else "",
+                    trend = "Formula: Epley",
                     trendColor = FitTrackColors.OnSurfaceVariant
                 )
             }
@@ -455,7 +481,7 @@ private fun Badge(
 }
 
 @Composable
-private fun BottomStickyBar() {
+private fun BottomStickyBar(canAddToWorkout: Boolean, onAddToWorkout: () -> Unit) {
     Surface(
         color = FitTrackColors.Background.copy(alpha = 0.9f),
         modifier = Modifier.fillMaxWidth()
@@ -469,7 +495,8 @@ private fun BottomStickyBar() {
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { },
+                    onClick = onAddToWorkout,
+                    enabled = canAddToWorkout,
                     modifier = Modifier.weight(1f).height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = FitTrackColors.PrimaryContainer, contentColor = FitTrackColors.OnPrimaryContainer),
                     shape = CircleShape

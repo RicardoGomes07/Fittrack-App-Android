@@ -12,10 +12,19 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 import com.example.fittrack.data.AuthManager
+import com.example.fittrack.data.model.WorkoutSessionRepository
+import com.example.fittrack.model.SessionSummary
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-class HomeViewModel(private val authManager: AuthManager) : ViewModel() {
+class HomeViewModel(
+    private val authManager: AuthManager,
+    private val sessionRepository: WorkoutSessionRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -32,6 +41,7 @@ class HomeViewModel(private val authManager: AuthManager) : ViewModel() {
 
     init {
         observeAuthState()
+        observeWorkouts()
         loadHomeData()
     }
 
@@ -44,6 +54,25 @@ class HomeViewModel(private val authManager: AuthManager) : ViewModel() {
                         userName = user?.name ?: ""
                     )
                 }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeWorkouts() {
+        authManager.currentUser
+            .flatMapLatest { user ->
+                if (user == null) {
+                    flowOf(false to emptyList<SessionSummary>())
+                } else {
+                    combine(
+                        sessionRepository.getActiveSession(user.id),
+                        sessionRepository.getRecentSessionSummaries(user.id, RECENT_SESSIONS_LIMIT)
+                    ) { active, recent -> (active != null) to recent }
+                }
+            }
+            .onEach { (hasActive, recent) ->
+                _uiState.update { it.copy(hasActiveWorkout = hasActive, recentSessions = recent) }
             }
             .launchIn(viewModelScope)
     }
@@ -64,6 +93,10 @@ class HomeViewModel(private val authManager: AuthManager) : ViewModel() {
                 )
             }
         }
+    }
+
+    private companion object {
+        const val RECENT_SESSIONS_LIMIT = 5
     }
 
     private fun getFormattedDate(): String {

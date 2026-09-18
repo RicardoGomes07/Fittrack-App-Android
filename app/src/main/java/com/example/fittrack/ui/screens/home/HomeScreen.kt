@@ -18,6 +18,7 @@ import com.example.fittrack.ui.screens.components.home.FitTrackTopBar
 import com.example.fittrack.ui.screens.components.home.GreetingSection
 import com.example.fittrack.ui.screens.components.home.MotivationBanner
 import com.example.fittrack.ui.screens.components.home.NotLoggedInCard
+import com.example.fittrack.ui.screens.components.home.WorkoutActivitySection
 import com.example.fittrack.ui.theme.FitTrackColors
 import com.example.fittrack.ui.theme.FitTrackTheme
 import org.koin.androidx.compose.koinViewModel
@@ -99,12 +100,18 @@ fun HomeContent(
                 if (!state.loggedIn) {
                     NotLoggedInCard(onSignUpClick = { onNavItemSelected("profile") })
                 } else {
-                    // TODO: Show summary of recent workouts or active routine
                     Text(
                         "Your Activity",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = FitTrackColors.OnSurface
                     )
+                    Spacer(Modifier.height(12.dp))
+                    WorkoutActivitySection(
+                        hasActiveWorkout = state.hasActiveWorkout,
+                        recentSessions = state.recentSessions,
+                        onStartWorkout = onStartWorkout
+                    )
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
