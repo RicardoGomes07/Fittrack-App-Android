@@ -13,7 +13,7 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getExerciseById(id: UUID): Exercise?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertExercise(exercise: Exercise)
 
     @Update
