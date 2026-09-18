@@ -42,8 +42,12 @@ class AuthViewModel(private val authManager: AuthManager) : ViewModel() {
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            authManager.signUp(name, nickname, password, weight, height, gender)
-            _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            val created = authManager.signUp(name, nickname, password, weight, height, gender)
+            if (created) {
+                _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            } else {
+                _uiState.update { it.copy(isLoading = false, error = "Nickname already taken") }
+            }
         }
     }
 

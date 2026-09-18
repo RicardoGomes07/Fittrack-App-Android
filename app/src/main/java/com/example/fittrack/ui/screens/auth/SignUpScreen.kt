@@ -165,6 +165,13 @@ fun SignUpScreen(
             }
         }
 
+        if (uiState.error != null) {
+            Text(
+                text = uiState.error!!,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(

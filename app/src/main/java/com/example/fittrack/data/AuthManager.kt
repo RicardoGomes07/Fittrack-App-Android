@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 class AuthManager(private val userRepository: UserRepository) {
@@ -32,14 +33,14 @@ class AuthManager(private val userRepository: UserRepository) {
     }
 
     suspend fun login(nickname: String, password: String): Boolean {
-        val user = userRepository.login(nickname, password)
-        if (user != null) {
-            userRepository.signUp(user) // Mark as logged in in our local DB
-            return true
-        }
-        return false
+        val user = userRepository.findByNickname(nickname.trim()) ?: return false
+        val valid = withContext(Dispatchers.Default) { PasswordHasher.verify(password, user.passwordHash) }
+        if (!valid) return false
+        userRepository.setLoggedIn(user.id)
+        return true
     }
 
+    /** Returns false, creating nothing, when the nickname is already taken. */
     suspend fun signUp(
         name: String,
         nickname: String,
@@ -47,17 +48,20 @@ class AuthManager(private val userRepository: UserRepository) {
         weight: Double = 0.0,
         height: Int = 0,
         gender: Gender = Gender.OTHER
-    ) {
+    ): Boolean {
+        val trimmedNickname = nickname.trim()
+        if (userRepository.findByNickname(trimmedNickname) != null) return false
         val newUser = User(
             name = name,
-            nickname = nickname,
-            password = password,
+            nickname = trimmedNickname,
+            passwordHash = withContext(Dispatchers.Default) { PasswordHasher.hash(password) },
             weight = weight,
             height = height,
             gender = gender,
             memberSince = LocalDate.now()
         )
         userRepository.signUp(newUser)
+        return true
     }
 
     suspend fun logout() {
